@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { CheckResponse, ProgressEntry, ProgressPayload } from '../types';
-import { fetchProgress, loadStoredProgress, saveProgressState } from '../services/api';
+import { fetchProgress } from '../services/api';
 
 interface ProgressContextValue {
   userId: number;
@@ -15,7 +15,14 @@ interface ProgressContextValue {
 
 const ProgressContext = createContext<ProgressContextValue | undefined>(undefined);
 
-const INITIAL_STATE: ProgressPayload = loadStoredProgress();
+const INITIAL_STATE: ProgressPayload = {
+  user_id: 1,
+  xp: 0,
+  streak: 0,
+  last_active: new Date().toISOString(),
+  daily_goal_minutes: 10,
+  progress: [],
+};
 
 export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<ProgressPayload>(INITIAL_STATE);
@@ -37,15 +44,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (payload: CheckResponse, topicId: string) => {
       setState((prev) => {
         const xp = prev.xp + payload.xp_awarded;
-        const nowIso = new Date().toISOString();
-        const today = new Date().toDateString();
-        const lastActiveDate = prev.last_active ? new Date(prev.last_active).toDateString() : today;
-        let streak = prev.streak;
-        if (payload.correct) {
-          streak = lastActiveDate === today ? prev.streak + 1 : 1;
-        } else if (lastActiveDate !== today) {
-          streak = 0;
-        }
+        const streak = payload.correct ? prev.streak + 1 : prev.streak;
         const progress = [...prev.progress];
         const existing = progress.find((entry) => entry.topic_id === topicId);
         if (existing) {
@@ -62,15 +61,12 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             xp_earned: payload.xp_awarded,
           });
         }
-        const next = {
+        return {
           ...prev,
           xp,
           streak,
-          last_active: nowIso,
           progress,
         };
-        saveProgressState(next);
-        return next;
       });
     },
     []

@@ -5,46 +5,6 @@ export interface Hint {
   text: string;
 }
 
-export type MethodChoiceValidation = {
-  type: 'method-choice';
-  expected: string;
-};
-
-export type TheoryValidation = {
-  type: 'theory';
-  expected: boolean;
-};
-
-export type MatchValidation = {
-  type: 'match';
-  expected: number[];
-};
-
-export type NumericValidation = {
-  type: 'numeric';
-  expected: number;
-  tolerance?: number;
-};
-
-export interface OdeValidationTerm {
-  derivative: number;
-  coefficient: string;
-}
-
-export type OdeValidation = {
-  type: 'ode';
-  variable?: string;
-  terms: OdeValidationTerm[];
-  rhs: string;
-};
-
-export type TaskValidation =
-  | MethodChoiceValidation
-  | TheoryValidation
-  | MatchValidation
-  | NumericValidation
-  | OdeValidation;
-
 export interface TaskPayload {
   id: string;
   topic_id: string;
@@ -55,7 +15,7 @@ export interface TaskPayload {
   hints: Hint[];
   options?: string[];
   pairs?: { left: string; right: string }[];
-  validation?: TaskValidation | null;
+  validation?: Record<string, unknown> | null;
 }
 
 export interface TopicDetail {
