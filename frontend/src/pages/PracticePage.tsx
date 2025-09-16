@@ -10,7 +10,8 @@ import { Hint, TaskPayload, TopicDetail } from '../types';
 const EXAM_DURATION = 180;
 
 function useQuery() {
-  return new URLSearchParams(useLocation().search);
+  const { search } = useLocation();
+  return useMemo(() => new URLSearchParams(search), [search]);
 }
 
 export default function PracticePage() {
