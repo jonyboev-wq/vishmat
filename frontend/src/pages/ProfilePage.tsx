@@ -1,7 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 import { useProgress } from '../context/ProgressContext';
-import { updateDailyGoal, updateSettings } from '../services/api';
+import { fetchSettings, updateDailyGoal, updateSettings } from '../services/api';
 
 const languages = [
   { value: 'ru', label: 'Русский' },
@@ -14,6 +14,14 @@ export default function ProfilePage() {
   const [goal, setGoal] = useState(dailyGoalMinutes);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchSettings()
+      .then((settings) => setLanguage(settings.preferredLanguage))
+      .catch((error) => {
+        console.error('Не удалось загрузить настройки', error);
+      });
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,7 +78,7 @@ export default function ProfilePage() {
           />
         </div>
         <div className="space-y-1 text-sm text-slate-500 dark:text-slate-300">
-          <p>Достижения синхронизируются автоматически после каждого задания. Прототип использует sqlite, но легко масштабируется до PostgreSQL.</p>
+          <p>Достижения синхронизируются автоматически после каждого задания. Прогресс хранится локально и доступен без сервера.</p>
         </div>
         {message && (
           <div
