@@ -43,3 +43,33 @@
 - Генерация вариативных задач с авто-проверкой и подсказками в 3 уровня.
 - Режим экзамена с таймером.
 - Геймификация: XP, streak, бейджи и отслеживание прогресса.
+
+## Сборка десктопного приложения (Windows)
+
+Приложение можно упаковать в автономный `.exe`, который хранит данные локально в
+`%APPDATA%/VishMatTrainer/app.db` и не требует отдельного запуска сервера.
+
+1. Соберите фронтенд:
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   cd ..
+   ```
+2. Создайте и активируйте Python-окружение, установите зависимости:
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate  # Windows PowerShell
+   pip install -r backend/requirements.txt -r desktop_app/requirements.txt
+   ```
+3. Соберите `.exe` через PyInstaller:
+   ```bash
+   pyinstaller desktop_app/app.spec
+   ```
+4. Готовый билд появится в `dist/VishMatTrainer/VishMatTrainer.exe`.
+
+Для тестирования без упаковки можно запустить `python desktop_app/app.py` —
+откроется окно с приложением, использующим встроенный сервер FastAPI.
+
+При необходимости путь к каталогу с данными можно переопределить переменной
+окружения `VISHMAT_DATA_DIR`.

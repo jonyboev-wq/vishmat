@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import crud
 from .database import init_db
@@ -122,3 +127,44 @@ def update_settings(payload: UserSettingsUpdate) -> Message:
 def update_goal(payload: DailyGoalUpdate) -> Message:
     crud.update_daily_goal(payload.user_id, payload.minutes)
     return Message(message="Цель обновлена")
+
+
+def _resolve_frontend_dir() -> Path | None:
+    candidates = []
+    if hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(sys._MEIPASS) / "docs")
+    candidates.append(Path(__file__).resolve().parents[2] / "docs")
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _mount_frontend(app: FastAPI) -> None:
+    frontend_dist = _resolve_frontend_dir()
+    if not frontend_dist:
+        return
+
+    assets_dir = frontend_dist / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    def read_index() -> FileResponse:
+        return FileResponse(frontend_dist / "index.html")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def read_spa(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
+        candidate = (frontend_dist / full_path).resolve()
+        try:
+            candidate.relative_to(frontend_dist)
+        except ValueError:
+            candidate = frontend_dist / "index.html"
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(frontend_dist / "index.html")
+
+
+_mount_frontend(app)
