@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const highlights = [
-  'Путь от базовых приёмов к экзаменационным задачам',
+  '10-дневный план: по 3 уравнения в день — всего 30 решений',
   'Подсказки в три уровня сложности',
   'Геймификация: streak, XP и достижения',
   'Режим экзамена — без подсказок, с таймером',
@@ -10,16 +10,16 @@ const highlights = [
 export default function HomePage() {
   return (
     <section className="space-y-8">
-      <div className="rounded-3xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 p-8 shadow">
-        <h2 className="text-3xl font-bold">Сделай диффуры понятными</h2>
+      <div className="rounded-3xl bg-gradient-to-r from-black/10 via-accent/10 to-black/10 p-8 shadow">
+        <h2 className="text-3xl font-bold">Сделай диффуры понятными за 10 дней</h2>
         <p className="mt-3 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
-          VishMat Trainer — это тренажёр уровня Дуолинго, который ведёт тебя через ключевые темы курса «Дифференциальные
-          уравнения». От короткой теории до адаптивной практики и финального экзамена.
+          VishMat Trainer ведёт тебя по интенсивной программе: каждый день — новая связка приёмов и три свежих уравнения.
+          За 10 дней ты решишь все 30 задач и выйдешь на уровень экзамена.
         </p>
         <div className="mt-6 flex flex-col gap-4 sm:flex-row">
           <Link
             to="/practice"
-            className="rounded-full bg-primary px-6 py-3 text-center font-semibold text-white shadow-lg shadow-primary/30 transition hover:-translate-y-0.5"
+            className="rounded-full bg-primary px-6 py-3 text-center font-semibold text-white shadow-lg shadow-black/30 transition hover:-translate-y-0.5"
           >
             Начать тренировку
           </Link>
@@ -40,12 +40,12 @@ export default function HomePage() {
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="text-xl font-semibold">Как устроены занятия?</h3>
+          <h3 className="text-xl font-semibold">Как устроена 10-дневная программа?</h3>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-300">
-            <li>Мини-теория со шпаргалкой формул.</li>
-            <li>Разбор типового примера с подсветкой шагов решения.</li>
-            <li>Практика с адаптивным усложнением и автопроверкой.</li>
-            <li>Итоговый тест уровня экзамена без подсказок.</li>
+            <li>Мини-теория и шпаргалка по теме дня.</li>
+            <li>Три целевых уравнения на отработку навыка.</li>
+            <li>Отмечаем прогресс, streak и XP.</li>
+            <li>Экзаменационный микс без подсказок в финальный день.</li>
           </ol>
         </article>
         <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
