@@ -25,7 +25,7 @@ export function FormulaInput({ value, onChange, placeholder, disabled }: Formula
       });
       setPreview(html);
     } catch (error) {
-      setPreview('<span class="text-red-500">Не удалось отобразить формулу</span>');
+      setPreview('<span class="text-slate-600">Не удалось отобразить формулу</span>');
     }
   }, [value]);
 

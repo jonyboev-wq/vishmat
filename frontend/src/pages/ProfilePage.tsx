@@ -76,8 +76,8 @@ export default function ProfilePage() {
           <div
             className={`rounded border px-3 py-2 text-sm ${
               message.includes('Не удалось')
-                ? 'border-red-400 bg-red-50 text-red-600 dark:bg-red-900/40'
-                : 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30'
+                ? 'border-slate-400 bg-slate-200 text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
+                : 'border-slate-700 bg-slate-900 text-white dark:border-slate-500 dark:bg-slate-900'
             }`}
           >
             {message}

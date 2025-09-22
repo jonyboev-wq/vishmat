@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { FormulaInput } from '../components/FormulaInput';
@@ -21,6 +21,8 @@ export default function PracticePage() {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [targetDifficulty, setTargetDifficulty] = useState(2);
   const [task, setTask] = useState<TaskPayload | null>(null);
+  const [taskDeck, setTaskDeck] = useState<Record<string, TaskPayload[]>>({});
+  const [taskIndexByTopic, setTaskIndexByTopic] = useState<Record<string, number>>({});
   const [hintLevel, setHintLevel] = useState(0);
   const [examMode, setExamMode] = useState(false);
   const [result, setResult] = useState<{ message: string; correct: boolean } | null>(null);
@@ -31,6 +33,7 @@ export default function PracticePage() {
   const [truthValue, setTruthValue] = useState<boolean | null>(null);
   const [numericAnswer, setNumericAnswer] = useState('');
   const [matchAnswers, setMatchAnswers] = useState<string[]>([]);
+  const [submittedTasks, setSubmittedTasks] = useState<Record<string, boolean>>({});
 
   const timerActive = examMode && Boolean(task);
   const remaining = useCountdown(timerActive, EXAM_DURATION);
@@ -55,11 +58,22 @@ export default function PracticePage() {
   }, [query]);
 
   useEffect(() => {
-    if (selectedTopic && !task) {
+    if (!selectedTopic) return;
+    const storedTasks = taskDeck[selectedTopic];
+    if (storedTasks && storedTasks.length > 0) {
+      if (!task) {
+        const storedIndex = taskIndexByTopic[selectedTopic] ?? storedTasks.length - 1;
+        const nextTask = storedTasks[storedIndex];
+        if (nextTask) {
+          resetLocalState(nextTask);
+        }
+      }
+      return;
+    }
+    if (!task) {
       void handleGenerate();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTopic]);
+  }, [selectedTopic, task, taskDeck, taskIndexByTopic, handleGenerate, resetLocalState]);
 
   useEffect(() => {
     if (!task) return;
@@ -80,23 +94,32 @@ export default function PracticePage() {
     return task.hints.filter((hint) => hint.level <= hintLevel);
   }, [task, hintLevel]);
 
-  const resetLocalState = (nextTask: TaskPayload) => {
-    setTask(nextTask);
-    setHintLevel(examMode ? 0 : 1);
-    setResult(null);
-    setExpression('');
-    setSelectedOption('');
-    setTruthValue(null);
-    setNumericAnswer('');
-    setMatchAnswers(new Array(nextTask.pairs?.length ?? 0).fill(''));
-  };
+  const resetLocalState = useCallback(
+    (nextTask: TaskPayload) => {
+      setTask(nextTask);
+      setHintLevel(examMode ? 0 : 1);
+      setResult(null);
+      setExpression('');
+      setSelectedOption('');
+      setTruthValue(null);
+      setNumericAnswer('');
+      setMatchAnswers(new Array(nextTask.pairs?.length ?? 0).fill(''));
+    },
+    [examMode]
+  );
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!selectedTopic) return;
     setLoading(true);
     setError(null);
     try {
       const generated = await generateTask(selectedTopic, targetDifficulty, examMode);
+      setTaskDeck((prev) => {
+        const existing = prev[selectedTopic] ?? [];
+        const updated = [...existing, generated];
+        setTaskIndexByTopic((prevIndex) => ({ ...prevIndex, [selectedTopic]: updated.length - 1 }));
+        return { ...prev, [selectedTopic]: updated };
+      });
       resetLocalState(generated);
     } catch (err) {
       console.error(err);
@@ -104,7 +127,7 @@ export default function PracticePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTopic, targetDifficulty, examMode, resetLocalState]);
 
   const handleHint = () => {
     if (!task) return;
@@ -143,8 +166,13 @@ export default function PracticePage() {
     setLoading(true);
     try {
       const response = await checkTask(task.id, task.topic_id, answer);
-      optimisticUpdate(response, task.topic_id);
-      setResult({ message: response.feedback, correct: response.correct });
+      const alreadySubmitted = submittedTasks[task.id];
+      if (!alreadySubmitted) {
+        optimisticUpdate(response, task.topic_id);
+        setSubmittedTasks((prev) => ({ ...prev, [task.id]: true }));
+      }
+      const xpNotice = alreadySubmitted ? ' XP за это задание уже начислен.' : '';
+      setResult({ message: `${response.feedback}${xpNotice}`, correct: response.correct });
     } catch (err) {
       console.error(err);
       setResult({ message: 'Не удалось проверить решение', correct: false });
@@ -258,6 +286,20 @@ export default function PracticePage() {
   };
 
   const currentTopic = topics.find((topic) => topic.id === selectedTopic);
+  const tasksForTopic = taskDeck[selectedTopic] ?? [];
+  const activeTaskIndex = taskIndexByTopic[selectedTopic] ?? (tasksForTopic.length ? tasksForTopic.length - 1 : 0);
+
+  const handleSelectTask = useCallback(
+    (index: number) => {
+      if (!selectedTopic) return;
+      const stored = taskDeck[selectedTopic];
+      if (!stored || !stored[index]) return;
+      if (index === activeTaskIndex) return;
+      setTaskIndexByTopic((prev) => ({ ...prev, [selectedTopic]: index }));
+      resetLocalState(stored[index]);
+    },
+    [activeTaskIndex, resetLocalState, selectedTopic, taskDeck]
+  );
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
@@ -308,8 +350,38 @@ export default function PracticePage() {
               )}
               {renderAnswerField()}
               {result && (
-                <div className={`rounded-xl border px-4 py-3 text-sm ${result.correct ? 'border-emerald-400 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30' : 'border-red-400 bg-red-50 text-red-600 dark:bg-red-900/40'}`}>
+                <div
+                  className={`rounded-xl border px-4 py-3 text-sm ${
+                    result.correct
+                      ? 'border-slate-700 bg-slate-900 text-white dark:bg-slate-900'
+                      : 'border-slate-400 bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                  }`}
+                >
                   {result.message}
+                </div>
+              )}
+              {task && submittedTasks[task.id] && (
+                <p className="text-xs text-slate-500">
+                  XP за это задание уже начислен — можно тренироваться без накрутки счёта.
+                </p>
+              )}
+              {tasksForTopic.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {tasksForTopic.map((storedTask, index) => (
+                    <button
+                      key={storedTask.id}
+                      type="button"
+                      onClick={() => handleSelectTask(index)}
+                      className={`rounded-full border px-3 py-1 transition ${
+                        index === activeTaskIndex
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                      disabled={loading && index !== activeTaskIndex}
+                    >
+                      Задание {index + 1}
+                    </button>
+                  ))}
                 </div>
               )}
               <div className="flex flex-wrap gap-3">
@@ -327,15 +399,15 @@ export default function PracticePage() {
                   className="rounded-full border border-primary px-5 py-2 font-semibold text-primary hover:bg-primary/10"
                   disabled={loading}
                 >
-                  Сгенерировать похожее
+                  Новое задание
                 </button>
               </div>
             </div>
           ) : (
-            <p className="mt-6 text-sm text-slate-500">Выберите тему и нажмите «Сгенерировать похожее», чтобы получить задачу.</p>
+            <p className="mt-6 text-sm text-slate-500">Выберите тему и нажмите «Новое задание», чтобы получить задачу.</p>
           )}
         </div>
-        {error && <div className="text-red-500">{error}</div>}
+        {error && <div className="text-slate-600">{error}</div>}
       </div>
       <aside className="space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
@@ -346,8 +418,15 @@ export default function PracticePage() {
               <select
                 value={selectedTopic}
                 onChange={(event) => {
-                  setSelectedTopic(event.target.value);
-                  setTask(null);
+                  const nextTopic = event.target.value;
+                  setSelectedTopic(nextTopic);
+                  const stored = taskDeck[nextTopic];
+                  if (stored && stored.length > 0) {
+                    const storedIndex = taskIndexByTopic[nextTopic] ?? stored.length - 1;
+                    resetLocalState(stored[storedIndex]);
+                  } else {
+                    setTask(null);
+                  }
                 }}
                 className="w-full rounded border border-slate-300 p-2 dark:border-slate-600 dark:bg-slate-900"
               >
