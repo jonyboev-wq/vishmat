@@ -1,10 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_submodules
 
-project_root = Path(__file__).resolve().parent.parent
+if "__file__" in globals():
+    spec_path = Path(__file__).resolve()
+elif len(sys.argv) > 1:
+    spec_path = Path(sys.argv[1]).resolve()
+else:
+    spec_path = Path(sys.argv[0]).resolve()
+project_root = spec_path.parent.parent
 
 block_cipher = None
 
@@ -16,7 +23,7 @@ pathex = [str(project_root)]
 
 
 a = Analysis(
-    ['desktop_app/app.py'],
+    [str(project_root / 'desktop_app' / 'app.py')],
     pathex=pathex,
     binaries=[],
     datas=datas,
